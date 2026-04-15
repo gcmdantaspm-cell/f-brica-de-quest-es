@@ -1,0 +1,96 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: artifacts/{appId}/users/{userId}/questoes
+    // Document ID: questaoId
+    // Fields:
+    //   - id: string (required)
+    //   - texto: string (required)
+    //   - gabarito: string (required, 'C' or 'E')
+    //   - justificativa: string (required)
+    //   - materia: string (required)
+    //   - topico: string (required)
+    //   - subtopico: string (required)
+    //   - status: string (required, 'nao_resolvida', 'certa', 'errada')
+    //
+    // Collection: artifacts/{appId}/users/{userId}/historico
+    // Document ID: historicoId
+    // Fields:
+    //   - id: string (required)
+    //   - questaoId: string (required)
+    //   - data: string (required, YYYY-MM-DD)
+    //   - acertou: boolean (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidQuestao(data) {
+      return hasOnlyAllowedFields(['id', 'texto', 'gabarito', 'justificativa', 'materia', 'topico', 'subtopico', 'status']) &&
+             hasRequiredFields(['id', 'texto', 'gabarito', 'justificativa', 'materia', 'topico', 'subtopico', 'status']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.texto is string && data.texto.size() > 0 && data.texto.size() < 10000 &&
+             data.gabarito in ['C', 'E'] &&
+             data.justificativa is string && data.justificativa.size() < 10000 &&
+             data.materia is string && data.materia.size() > 0 && data.materia.size() < 200 &&
+             data.topico is string && data.topico.size() > 0 && data.topico.size() < 200 &&
+             data.subtopico is string && data.subtopico.size() > 0 && data.subtopico.size() < 200 &&
+             data.status in ['nao_resolvida', 'certa', 'errada'];
+    }
+
+    function isValidHistorico(data) {
+      return hasOnlyAllowedFields(['id', 'questaoId', 'data', 'acertou']) &&
+             hasRequiredFields(['id', 'questaoId', 'data', 'acertou']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.questaoId is string && data.questaoId.size() > 0 && data.questaoId.size() < 100 &&
+             data.data is string && data.data.matches("^\\d{4}-\\d{2}-\\d{2}$") &&
+             data.acertou is bool;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /artifacts/{appId}/users/{userId}/questoes/{questaoId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidQuestao(request.resource.data);
+      allow update: if isOwner(userId) && isValidQuestao(request.resource.data);
+      allow delete: if isOwner(userId);
+    }
+
+    match /artifacts/{appId}/users/{userId}/historico/{historicoId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidHistorico(request.resource.data);
+      allow update: if isOwner(userId) && isValidHistorico(request.resource.data);
+      allow delete: if isOwner(userId);
+    }
+  }
+}

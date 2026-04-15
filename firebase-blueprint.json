@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "Questao": {
+      "title": "Questao",
+      "description": "Uma questão gerada ou padrão",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID único da questão"
+        },
+        "texto": {
+          "type": "string",
+          "description": "Texto da questão"
+        },
+        "gabarito": {
+          "type": "string",
+          "enum": ["C", "E"],
+          "description": "Gabarito da questão (Certo ou Errado)"
+        },
+        "justificativa": {
+          "type": "string",
+          "description": "Justificativa da resposta"
+        },
+        "materia": {
+          "type": "string",
+          "description": "Matéria da questão"
+        },
+        "topico": {
+          "type": "string",
+          "description": "Tópico da questão"
+        },
+        "subtopico": {
+          "type": "string",
+          "description": "Subtópico da questão"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["nao_resolvida", "certa", "errada"],
+          "description": "Status de resolução da questão pelo usuário"
+        }
+      },
+      "required": ["id", "texto", "gabarito", "justificativa", "materia", "topico", "subtopico", "status"]
+    },
+    "Historico": {
+      "title": "Historico",
+      "description": "Histórico de resolução de uma questão",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID único do histórico"
+        },
+        "questaoId": {
+          "type": "string",
+          "description": "ID da questão resolvida"
+        },
+        "data": {
+          "type": "string",
+          "description": "Data da resolução (YYYY-MM-DD)"
+        },
+        "acertou": {
+          "type": "boolean",
+          "description": "Se o usuário acertou a questão"
+        }
+      },
+      "required": ["id", "questaoId", "data", "acertou"]
+    }
+  },
+  "firestore": {
+    "/artifacts/{appId}/users/{userId}/questoes/{questaoId}": {
+      "schema": {
+        "$ref": "#/entities/Questao"
+      },
+      "description": "Questões do usuário"
+    },
+    "/artifacts/{appId}/users/{userId}/historico/{historicoId}": {
+      "schema": {
+        "$ref": "#/entities/Historico"
+      },
+      "description": "Histórico de resoluções do usuário"
+    }
+  }
+}
