@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   CheckCircle, XCircle, FileText, Download, BookOpen, 
   ChevronRight, ChevronLeft, Database, PlusCircle, BarChart2, Filter, 
-  Search, PlayCircle, Loader2, AlertCircle, Menu, X, User, LogIn
+  Search, PlayCircle, Loader2, AlertCircle, Menu, X, User, LogIn, Share2
 } from 'lucide-react';
 
 // --- IMPORTAÇÕES DO FIREBASE (NUVEM E AUTENTICAÇÃO) ---
@@ -146,9 +146,13 @@ export default function App() {
   const handleLogin = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao fazer login:", error);
-      alert("Erro ao fazer login. Tente novamente.");
+      // Mostra uma mensagem mais detalhada para ajudar no debug
+      const errorMessage = error.code === 'auth/unauthorized-domain' 
+        ? "Este domínio não está autorizado no Firebase Console. Adicione 'f-brica-de-quest-es.vercel.app' em Authentication > Settings > Authorized domains."
+        : `Erro ao fazer login: ${error.message}`;
+      alert(errorMessage);
     }
   };
 
@@ -375,6 +379,32 @@ ${textoBase}
         });
       } catch (e) {
         handleFirestoreError(e, OperationType.CREATE, `${hPath}/${histId}`);
+      }
+    }
+  };
+
+  const handleShare = async (questao) => {
+    const shareText = `Questão de ${questao.materia} (${questao.topico}):\n\n${questao.texto}\n\nResolva mais questões no Deadpool PRO!`;
+    const shareUrl = window.location.origin;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Questão Deadpool PRO',
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        if (err instanceof Error && err.name !== 'AbortError') {
+          console.error('Erro ao compartilhar:', err);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n\nLink: ${shareUrl}`);
+        alert('Questão e link copiados para a área de transferência!');
+      } catch (err) {
+        console.error('Erro ao copiar:', err);
       }
     }
   };
@@ -711,8 +741,17 @@ ${textoBase}
                        <div className="text-xs font-bold text-slate-700">{qAtual.topico} <span className="text-slate-400 font-normal">› {qAtual.subtopico}</span></div>
                      </div>
                    </div>
-                   <div className="text-xs font-bold text-slate-400">
-                     {indiceNavegacao + 1} / {provaAtual.length}
+                   <div className="flex items-center gap-3">
+                     <div className="text-xs font-bold text-slate-400">
+                       {indiceNavegacao + 1} / {provaAtual.length}
+                     </div>
+                     <button 
+                       onClick={() => handleShare(qAtual)}
+                       className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                       title="Compartilhar Questão"
+                     >
+                       <Share2 className="w-4 h-4" />
+                     </button>
                    </div>
                 </div>
 
